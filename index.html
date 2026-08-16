@@ -17,11 +17,11 @@
 }
 *{box-sizing:border-box} body{margin:0;background:radial-gradient(circle at top,#22211d 0,#10100f 45%);color:var(--text);font-family:Georgia,"Times New Roman",serif;min-height:100vh}
 button,input,textarea,select{font:inherit} button{cursor:pointer}
-.app{max-width:1100px;margin:auto;padding:20px 18px 60px}
-header{display:flex;align-items:center;justify-content:space-between;gap:16px;padding:8px 0 20px}
+.app{max-width:1100px;margin:auto;padding:calc(20px + env(safe-area-inset-top)) 18px calc(60px + env(safe-area-inset-bottom))}
+header{display:grid;grid-template-columns:minmax(180px,1fr) auto;align-items:start;gap:18px;padding:8px 0 24px}
 .brand{letter-spacing:.12em;text-transform:uppercase;font-size:13px;color:var(--gold)}
 .subtitle{color:var(--muted);font-size:12px;margin-top:4px}
-.nav{display:flex;gap:6px;flex-wrap:wrap}.nav button{background:transparent;color:var(--muted);border:1px solid var(--line);padding:8px 11px;border-radius:999px}
+.nav{display:grid;grid-template-columns:repeat(3,minmax(82px,1fr));gap:6px;min-width:290px}.nav button{background:transparent;color:var(--muted);border:1px solid var(--line);padding:9px 11px;border-radius:999px;min-height:42px}.nav button:last-child{grid-column:1/-1}
 .nav button.active,.nav button:hover{color:var(--text);border-color:#5b5548;background:#24221d}
 .view{display:none}.view.active{display:block}
 .hero{padding:28px 0 22px;border-bottom:1px solid var(--line)}
@@ -45,7 +45,19 @@ textarea{min-height:150px;resize:vertical;line-height:1.5} input[type=text]:focu
 .calendar{display:grid;grid-template-columns:repeat(7,1fr);border:1px solid var(--line);border-radius:14px;overflow:hidden}.dow,.day{padding:9px;border-right:1px solid var(--line);border-bottom:1px solid var(--line);min-height:88px}.dow{min-height:auto;color:var(--muted);font-size:11px;text-transform:uppercase;letter-spacing:.08em;background:#151513}.day{background:#191917}.day:nth-child(7n){border-right:0}.day.blank{background:#121210}.day.today{outline:2px solid var(--gold);outline-offset:-2px}.daynum{font-size:13px;color:var(--muted)}.event{font-size:11px;line-height:1.25;margin-top:7px}.event.solemnity{color:#d8bd80}.event.feast{color:#c99c93}.event.memorial{color:#9eb092}
 .list{display:grid;gap:8px}.item{display:flex;justify-content:space-between;gap:15px;align-items:center;padding:12px;border:1px solid var(--line);border-radius:10px;background:#191917}.item small{color:var(--muted)}
 footer{text-align:center;color:#625f58;font-size:11px;margin-top:35px;letter-spacing:.06em}
-@media(max-width:800px){.card,.card.wide{grid-column:1/-1}.nav{width:100%}.nav button{flex:1}.calendar{font-size:11px}.dow,.day{min-height:72px;padding:7px}.event{font-size:10px}}
+@media(max-width:800px){
+  .app{padding-left:14px;padding-right:14px}
+  header{grid-template-columns:1fr;gap:14px}
+  .brand{font-size:12px}
+  .nav{width:100%;min-width:0;grid-template-columns:repeat(3,1fr)}
+  .nav button{width:100%}
+  .card,.card.wide{grid-column:1/-1}
+  .calendar-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch}
+  .calendar{font-size:10px;min-width:700px}
+  .dow,.day{min-height:78px;padding:7px}
+  .event{font-size:10px;overflow-wrap:anywhere}
+  .sectionhead{align-items:flex-start;flex-direction:column}
+}
 </style>
 </head>
 <body>
@@ -102,7 +114,7 @@ footer{text-align:center;color:#625f58;font-size:11px;margin-top:35px;letter-spa
 <section id="ordo" class="view">
   <div class="hero"><div class="eyebrow">The Ordo</div><h1>Liturgical year</h1><p class="lead">A simple local calendar for the current year. The first version is seeded with the major August celebrations; we can expand this into the complete Roman and Benedictine calendars.</p></div>
   <div class="sectionhead"><h2>August 2026</h2><div class="meta">Roman Calendar · Year A · Psalm Week 4 on 16 August</div></div>
-  <div class="calendar" id="calendar"></div>
+  <div class="calendar-wrap"><div class="calendar" id="calendar"></div></div>
   <div class="sectionhead"><h2>Coming up</h2><div class="meta">Tap into the rhythm of the week rather than treating every day as identical.</div></div>
   <div class="list" id="upcoming"></div>
 </section>
