@@ -1,0 +1,215 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#10100f">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Monastic Planner">
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icons/icon-180.png">
+<title>Domestic Monastic Planner</title>
+<style>
+:root{
+  --bg:#10100f;--panel:#181817;--panel2:#20201e;--text:#eee9dc;--muted:#a9a398;
+  --line:#34332f;--gold:#c7a86b;--green:#7f9270;--red:#9b6b64;--blue:#718596;
+}
+*{box-sizing:border-box} body{margin:0;background:radial-gradient(circle at top,#22211d 0,#10100f 45%);color:var(--text);font-family:Georgia,"Times New Roman",serif;min-height:100vh}
+button,input,textarea,select{font:inherit} button{cursor:pointer}
+.app{max-width:1100px;margin:auto;padding:20px 18px 60px}
+header{display:flex;align-items:center;justify-content:space-between;gap:16px;padding:8px 0 20px}
+.brand{letter-spacing:.12em;text-transform:uppercase;font-size:13px;color:var(--gold)}
+.subtitle{color:var(--muted);font-size:12px;margin-top:4px}
+.nav{display:flex;gap:6px;flex-wrap:wrap}.nav button{background:transparent;color:var(--muted);border:1px solid var(--line);padding:8px 11px;border-radius:999px}
+.nav button.active,.nav button:hover{color:var(--text);border-color:#5b5548;background:#24221d}
+.view{display:none}.view.active{display:block}
+.hero{padding:28px 0 22px;border-bottom:1px solid var(--line)}
+.eyebrow{font-size:12px;letter-spacing:.12em;text-transform:uppercase;color:var(--gold)}
+h1{font-size:clamp(32px,6vw,62px);line-height:.98;margin:9px 0 12px;font-weight:400}
+h2{font-size:25px;font-weight:400;margin:0 0 14px}.lead{color:var(--muted);max-width:720px;line-height:1.6}
+.grid{display:grid;grid-template-columns:repeat(12,1fr);gap:14px;margin-top:18px}
+.card{grid-column:span 4;background:rgba(24,24,23,.92);border:1px solid var(--line);border-radius:16px;padding:18px;box-shadow:0 10px 35px rgba(0,0,0,.18)}
+.card.wide{grid-column:span 8}.card.full{grid-column:1/-1}.card h3{margin:0 0 7px;font-size:17px;font-weight:400}.meta{color:var(--muted);font-size:12px;line-height:1.5}
+.badge{display:inline-flex;align-items:center;border:1px solid var(--line);border-radius:999px;padding:5px 8px;color:var(--muted);font-size:11px;margin:3px 4px 3px 0}
+.badge.green{border-color:#53614a;color:#a9ba9c}.badge.gold{border-color:#66563a;color:#d7bd86}.badge.red{border-color:#684642;color:#c79891}
+.checkrow{display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid #2b2b28}.checkrow:last-child{border-bottom:0}
+.checkrow input{width:18px;height:18px;accent-color:var(--gold)}.checkrow.done label{text-decoration:line-through;color:#77736b}
+.next{display:flex;align-items:center;gap:12px;padding:13px;border:1px solid #4e4638;border-radius:12px;background:#211f1a}.next strong{font-size:17px;font-weight:400}.next small{display:block;color:var(--muted);margin-top:2px}
+.progress{height:5px;background:#2b2b28;border-radius:999px;overflow:hidden;margin-top:12px}.progress span{display:block;height:100%;background:var(--gold);width:0}
+.quote{font-size:19px;line-height:1.55;font-style:italic}.quote::before{content:"“";color:var(--gold);font-size:38px;vertical-align:-12px;margin-right:5px}
+textarea,input[type=text]{width:100%;background:#11110f;border:1px solid var(--line);border-radius:10px;color:var(--text);padding:11px;outline:none}
+textarea{min-height:150px;resize:vertical;line-height:1.5} input[type=text]:focus,textarea:focus{border-color:#6a5a3d}
+.actions{display:flex;gap:8px;margin-top:10px;flex-wrap:wrap}.primary,.secondary{border-radius:10px;padding:9px 12px}.primary{background:var(--gold);color:#17130b;border:1px solid var(--gold)}.secondary{background:transparent;color:var(--text);border:1px solid var(--line)}
+.sectionhead{display:flex;align-items:end;justify-content:space-between;gap:10px;margin:28px 0 12px}.sectionhead .meta{max-width:500px}
+.calendar{display:grid;grid-template-columns:repeat(7,1fr);border:1px solid var(--line);border-radius:14px;overflow:hidden}.dow,.day{padding:9px;border-right:1px solid var(--line);border-bottom:1px solid var(--line);min-height:88px}.dow{min-height:auto;color:var(--muted);font-size:11px;text-transform:uppercase;letter-spacing:.08em;background:#151513}.day{background:#191917}.day:nth-child(7n){border-right:0}.day.blank{background:#121210}.day.today{outline:2px solid var(--gold);outline-offset:-2px}.daynum{font-size:13px;color:var(--muted)}.event{font-size:11px;line-height:1.25;margin-top:7px}.event.solemnity{color:#d8bd80}.event.feast{color:#c99c93}.event.memorial{color:#9eb092}
+.list{display:grid;gap:8px}.item{display:flex;justify-content:space-between;gap:15px;align-items:center;padding:12px;border:1px solid var(--line);border-radius:10px;background:#191917}.item small{color:var(--muted)}
+footer{text-align:center;color:#625f58;font-size:11px;margin-top:35px;letter-spacing:.06em}
+@media(max-width:800px){.card,.card.wide{grid-column:1/-1}.nav{width:100%}.nav button{flex:1}.calendar{font-size:11px}.dow,.day{min-height:72px;padding:7px}.event{font-size:10px}}
+</style>
+</head>
+<body>
+<div class="app">
+<header>
+  <div><div class="brand">✠ Domestic Monastic Planner</div><div class="subtitle">A small rule for an ordinary household</div></div>
+  <nav class="nav">
+    <button class="active" data-view="today">Today</button>
+    <button data-view="ordo">Ordo</button>
+    <button data-view="rule">My Rule</button>
+    <button data-view="journal">Journal</button>
+  </nav>
+</header>
+
+<section id="today" class="view active">
+  <div class="hero">
+    <div class="eyebrow" id="dateLabel"></div>
+    <h1 id="liturgicalTitle">20th Sunday in Ordinary Time</h1>
+    <div id="liturgicalMeta"></div>
+    <p class="lead">Let the liturgical year give shape to the day: prayer, work, family, rest, and the quiet return to God.</p>
+  </div>
+  <div class="grid">
+    <div class="card wide">
+      <h3>✦ Next in your Rule</h3>
+      <div class="next" id="nextBox"></div>
+      <div class="progress"><span id="progressBar"></span></div>
+      <div class="meta" id="progressText" style="margin-top:7px"></div>
+    </div>
+    <div class="card">
+      <h3>Saint / commemoration</h3>
+      <div id="saintCard"></div>
+    </div>
+    <div class="card wide">
+      <h3>Today's prayer</h3>
+      <div class="quote" id="prayerQuote"></div>
+      <div class="meta" style="margin-top:10px">A short domestic monastic prompt for the day.</div>
+    </div>
+    <div class="card">
+      <h3>Liturgical details</h3>
+      <div id="details"></div>
+    </div>
+    <div class="card wide">
+      <h3>Daily Office & household rhythm</h3>
+      <div id="tasks"></div>
+    </div>
+    <div class="card">
+      <h3>Evening examen</h3>
+      <textarea id="examen" placeholder="Where did I encounter God today? Where do I need repentance? What am I entrusting to God tonight?"></textarea>
+      <div class="actions"><button class="primary" onclick="saveExamen()">Save</button><button class="secondary" onclick="clearExamen()">Clear</button></div>
+    </div>
+  </div>
+</section>
+
+<section id="ordo" class="view">
+  <div class="hero"><div class="eyebrow">The Ordo</div><h1>Liturgical year</h1><p class="lead">A simple local calendar for the current year. The first version is seeded with the major August celebrations; we can expand this into the complete Roman and Benedictine calendars.</p></div>
+  <div class="sectionhead"><h2>August 2026</h2><div class="meta">Roman Calendar · Year A · Psalm Week 4 on 16 August</div></div>
+  <div class="calendar" id="calendar"></div>
+  <div class="sectionhead"><h2>Coming up</h2><div class="meta">Tap into the rhythm of the week rather than treating every day as identical.</div></div>
+  <div class="list" id="upcoming"></div>
+</section>
+
+<section id="rule" class="view">
+  <div class="hero"><div class="eyebrow">My Rule</div><h1>Prayer, work, rest.</h1><p class="lead">Your rule is the backbone. The app turns it into today's gentle sequence instead of a giant overdue task list.</p></div>
+  <div class="grid">
+    <div class="card wide"><h3>Daily rule</h3><div id="ruleList"></div></div>
+    <div class="card"><h3>Add a household task</h3><input id="newTask" type="text" placeholder="e.g. Walk the dog"><div class="actions"><button class="primary" onclick="addTask()">Add</button></div><div class="meta" style="margin-top:10px">Stored only on this device.</div></div>
+  </div>
+</section>
+
+<section id="journal" class="view">
+  <div class="hero"><div class="eyebrow">Journal</div><h1>A commonplace book.</h1><p class="lead">Keep a small record of prayer, Scripture, saints, resolutions and the ordinary graces of family life.</p></div>
+  <div class="card full" style="margin-top:18px"><h3 id="journalDate"></h3><textarea id="journalText" placeholder="Write freely…"></textarea><div class="actions"><button class="primary" onclick="saveJournal()">Save today's entry</button></div></div>
+  <div class="card full" style="margin-top:14px"><h3>Saved entries</h3><div id="savedEntries"></div></div>
+</section>
+
+<footer>Built for a domestic rule of life · ✠</footer>
+</div>
+
+<script>
+const KEY="dmp-v1";
+const defaultTasks=[
+  ["lauds","Lauds","Morning prayer","07:30"],
+  ["bible","Scripture & journaling","Bible in a Year + reflection","08:00"],
+  ["work","Work / household duties","Ora et labora","09:00"],
+  ["sext","Sext","Midday pause","12:00"],
+  ["rosary","Holy Rosary","Pray the Rosary","15:00"],
+  ["vespers","Vespers","Evening prayer","18:00"],
+  ["reading","Spiritual reading","Rule / saint / theology","20:30"],
+  ["compline","Compline","Night prayer & examen","22:30"]
+];
+const calendarData={
+ "2026-08-15":{title:"The Assumption of the Blessed Virgin Mary",type:"solemnity",colour:"White",note:"Solemnity"},
+ "2026-08-16":{title:"20th Sunday in Ordinary Time",type:"sunday",colour:"Green",note:"Psalm Week 4"},
+ "2026-08-17":{title:"Monday of week 20 in Ordinary Time",type:"weekday",colour:"Green",note:"Feria"},
+ "2026-08-18":{title:"Tuesday of week 20 in Ordinary Time",type:"weekday",colour:"Green",note:"Feria"},
+ "2026-08-19":{title:"St John Eudes, Priest",type:"memorial",colour:"Green/White",note:"Optional memorial"},
+ "2026-08-20":{title:"St Bernard, Abbot & Doctor of the Church",type:"memorial",colour:"White",note:"Memorial"},
+ "2026-08-21":{title:"St Pius X, Pope",type:"memorial",colour:"White",note:"Memorial"},
+ "2026-08-22":{title:"The Queenship of the Blessed Virgin Mary",type:"memorial",colour:"White",note:"Memorial"},
+ "2026-08-23":{title:"21st Sunday in Ordinary Time",type:"sunday",colour:"Green",note:"Psalm Week 1"},
+ "2026-08-24":{title:"St Bartholomew, Apostle",type:"feast",colour:"Red",note:"Feast"},
+ "2026-08-27":{title:"St Monica",type:"memorial",colour:"White",note:"Memorial"},
+ "2026-08-28":{title:"St Augustine, Bishop & Doctor",type:"memorial",colour:"White",note:"Memorial"},
+ "2026-08-29":{title:"The Beheading of St John the Baptist",type:"memorial",colour:"Red",note:"Memorial"},
+ "2026-08-30":{title:"22nd Sunday in Ordinary Time",type:"sunday",colour:"Green",note:"Psalm Week 2"}
+};
+const saintInfo={
+ "2026-08-16":{name:"St Stephen of Hungary",bio:"First King of Hungary, who worked for the conversion of his people and established episcopal sees and monasteries.",prompt:"Ask for the grace to make the ordinary structures of family life serve the Kingdom of God."},
+ "2026-08-20":{name:"St Bernard of Clairvaux",bio:"Cistercian abbot, preacher and Doctor of the Church, remembered for his love of Christ and the Blessed Virgin Mary.",prompt:"Let love of Christ be more than an idea: make one concrete act of charity today."},
+ "2026-08-28":{name:"St Augustine",bio:"Bishop of Hippo and Doctor of the Church, whose restless heart found its rest in God.",prompt:"Bring one restless desire honestly before God rather than trying to silence it."}
+};
+let state=JSON.parse(localStorage.getItem(KEY)||"{}");
+state.tasks=state.tasks||{};
+state.customTasks=state.customTasks||[];
+state.journal=state.journal||{};
+state.examen=state.examen||{};
+
+function todayKey(){return new Date().toISOString().slice(0,10)}
+function fmtDate(d){return new Intl.DateTimeFormat("en-GB",{weekday:"long",day:"numeric",month:"long",year:"numeric"}).format(d)}
+function getDay(){return calendarData[todayKey()]||{title:"Feria",type:"weekday",colour:"Green",note:"Ordinary Time"}}
+function save(){localStorage.setItem(KEY,JSON.stringify(state))}
+function allTasks(){return [...defaultTasks,...state.customTasks.map((x,i)=>[x.id||"custom"+i,x.name,"Household", ""]) ]}
+function taskDone(id){return !!(state.tasks[todayKey()]||{})[id]}
+function toggleTask(id){state.tasks[todayKey()]=state.tasks[todayKey()]||{};state.tasks[todayKey()][id]=!taskDone(id);save();renderToday()}
+function renderToday(){
+ const d=new Date(), key=todayKey(), info=getDay(), saint=saintInfo[key];
+ document.getElementById("dateLabel").textContent=fmtDate(d);
+ document.getElementById("liturgicalTitle").textContent=info.title;
+ document.getElementById("liturgicalMeta").innerHTML=`<span class="badge ${info.type==="solemnity"?"gold":info.type==="feast"?"red":"green"}">${info.note}</span><span class="badge">${info.colour}</span>`;
+ document.getElementById("saintCard").innerHTML=saint?`<strong style="font-size:19px;font-weight:400">${saint.name}</strong><p class="meta">${saint.bio}</p><p class="meta"><b>Domestic prompt:</b> ${saint.prompt}</p>`:`<div class="meta">The day's principal celebration is <b>${info.title}</b>. Optional commemorations can be added as the calendar is expanded.</div>`;
+ document.getElementById("prayerQuote").textContent=saint?saint.prompt:"Lord, teach me to receive this ordinary day as a gift and to return it to you in love.";
+ document.getElementById("details").innerHTML=`<span class="badge">Season: Ordinary Time</span><span class="badge">Year: A</span><span class="badge">Local: UK / Ireland</span><p class="meta">This local-first version does not require an internet connection. Liturgical data can be expanded in a later version.</p>`;
+ const tasks=allTasks(), done=tasks.filter(x=>taskDone(x[0])).length, pct=Math.round(done/tasks.length*100);
+ document.getElementById("progressBar").style.width=pct+"%";document.getElementById("progressText").textContent=`${done} of ${tasks.length} completed · ${pct}%`;
+ document.getElementById("tasks").innerHTML=tasks.map(x=>`<div class="checkrow ${taskDone(x[0])?"done":""}"><input type="checkbox" ${taskDone(x[0])?"checked":""} onchange="toggleTask('${x[0]}')"><label><b>${x[1]}</b><span class="meta"> · ${x[2]}${x[3]?" · "+x[3]:""}</span></label></div>`).join("");
+ const next=tasks.find(x=>!taskDone(x[0]))||tasks[0];
+ document.getElementById("nextBox").innerHTML=`<div><div class="eyebrow">${next[3]||"Next"}</div><strong>${next[1]}</strong><small>${next[2]}</small></div>`;
+ document.getElementById("examen").value=state.examen[key]||"";
+}
+function renderCalendar(){
+ const el=document.getElementById("calendar");let out=["Sun","Mon","Tue","Wed","Thu","Fri","Sat"].map(x=>`<div class="dow">${x}</div>`).join("");
+ const first=new Date(2026,7,1).getDay(), days=31;
+ for(let i=0;i<first;i++)out+=`<div class="day blank"></div>`;
+ for(let n=1;n<=days;n++){let k=`2026-08-${String(n).padStart(2,"0")}`,x=calendarData[k];out+=`<div class="day ${k===todayKey()?"today":""}"><div class="daynum">${n}</div>${x?`<div class="event ${x.type}">${x.title}</div>`:""}</div>`}
+ el.innerHTML=out;
+ const upcoming=Object.entries(calendarData).filter(([k])=>k>=todayKey()).slice(0,7);
+ document.getElementById("upcoming").innerHTML=upcoming.map(([k,x])=>`<div class="item"><div><b>${x.title}</b><small>${fmtDate(new Date(k+"T12:00:00"))}</small></div><span class="badge ${x.type==="solemnity"?"gold":x.type==="feast"?"red":"green"}">${x.note}</span></div>`).join("");
+}
+function renderRule(){
+ document.getElementById("ruleList").innerHTML=allTasks().map(x=>`<div class="checkrow"><div style="width:24px;color:var(--gold)">✠</div><label><b>${x[1]}</b><span class="meta"> · ${x[2]}${x[3]?" · "+x[3]:""}</span></label></div>`).join("");
+}
+function addTask(){let v=document.getElementById("newTask").value.trim();if(!v)return;state.customTasks.push({id:"custom-"+Date.now(),name:v});document.getElementById("newTask").value="";save();renderRule();renderToday()}
+function saveExamen(){state.examen[todayKey()]=document.getElementById("examen").value;save()}
+function clearExamen(){document.getElementById("examen").value="";delete state.examen[todayKey()];save()}
+function saveJournal(){state.journal[todayKey()]=document.getElementById("journalText").value;save();renderJournal()}
+function renderJournal(){document.getElementById("journalDate").textContent=fmtDate(new Date());document.getElementById("journalText").value=state.journal[todayKey()]||"";const entries=Object.entries(state.journal).sort((a,b)=>b[0].localeCompare(a[0]));document.getElementById("savedEntries").innerHTML=entries.length?entries.map(([k,v])=>`<div class="item"><div><b>${fmtDate(new Date(k+"T12:00:00"))}</b><small>${(v||"").slice(0,110)}${(v||"").length>110?"…":""}</small></div><button class="secondary" onclick="loadEntry('${k}')">Open</button></div>`).join(""):`<div class="meta">No entries yet.</div>`}
+function loadEntry(k){document.getElementById("journalText").value=state.journal[k]||""}
+document.querySelectorAll(".nav button").forEach(b=>b.onclick=()=>{document.querySelectorAll(".nav button").forEach(x=>x.classList.remove("active"));b.classList.add("active");document.querySelectorAll(".view").forEach(v=>v.classList.remove("active"));document.getElementById(b.dataset.view).classList.add("active")});
+renderToday();renderCalendar();renderRule();renderJournal();
+</script>
+<script>
+if ("serviceWorker" in navigator) {
+  window.addEventListener("load", () => navigator.serviceWorker.register("./sw.js").catch(()=>{}));
+}
+</script>
+</body>
+</html>
