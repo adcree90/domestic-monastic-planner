@@ -390,26 +390,23 @@ input[type="time"]{display:none}
 <section id="rule" class="view">
   <div class="hero"><div class="eyebrow">My Rule</div><h1>Prayer, work, rest.</h1><p class="lead">Your rule is the backbone. Edit the rhythm here and today's page follows it automatically.</p></div>
   <div class="grid">
+    <div class="card full category-card">
+      <div class="sectionhead" style="margin:0 0 10px"><h2 style="margin:0">Categories</h2><div class="meta">Create your own categories and use them to organise your daily rule.</div></div>
+      <div class="category-add-top"><input id="newCategoryTop" type="text" placeholder="e.g. Dog, Family, Study"><button class="secondary" onclick="addCategoryTop()">Add category</button></div>
+      <div id="categoryListTop" class="category-grid"></div>
+    </div>
     <div class="card wide"><div class="sectionhead" style="margin:0 0 10px"><h2 style="margin:0">Daily rule</h2><div class="meta">Edit or remove anything you no longer want in the rhythm.</div></div><div id="ruleList"></div></div>
     <div class="card"><h3>Add to your daily rule</h3>
   <div class="form-stack">
     <label class="field-label" for="newTask">Task</label>
     <input id="newTask" type="text" placeholder="e.g. Walk the dog">
     <label class="field-label" for="newTaskTime">Time <span>(optional)</span></label>
-    <input id="newTaskTime" type="text" inputmode="numeric" autocomplete="off" placeholder="HH:MM" maxlength="5" value="">
+    <input id="newTaskTime" type="time" step="60" autocomplete="off" aria-label="Time (optional)">
     <label class="field-label" for="newTaskCategory">Category</label>
     <select id="newTaskCategory"></select>
     <button class="primary" onclick="addTask()">Add task</button>
   </div>
   <div class="meta" style="margin-top:10px">Tasks are automatically sorted by time. Categories can be changed at any time.</div>
-  <div class="category-manager">
-    <div class="category-manager-title">Categories</div>
-    <div id="categoryList"></div>
-    <div class="category-add">
-      <input id="newCategory" type="text" placeholder="Add a category">
-      <button class="secondary" onclick="addCategory()">Add</button>
-    </div>
-  </div>
 </div>
   </div>
 </section>
@@ -489,8 +486,8 @@ function getDay(){return calendarData[todayKey()]||{title:"Feria",type:"weekday"
 function save(){localStorage.setItem(KEY,JSON.stringify(state))}
 function allTasks(){
  const removed=state.removedTasks||{};
- const defaults=defaultTasks.filter(x=>!removed[x[0]]).map(x=>[x[0],x[1],state.taskCategories[x[0]]||defaultCategory(x[0]),x[3]||""]);
- const customs=state.customTasks.map((x,i)=>[x.id||"custom"+i,x.name,x.category||"Household",x.time||""]);
+ const defaults=defaultTasks.filter(x=>!removed[x[0]]).map(x=>[x[0],x[1],x[2],x[3]||"",state.taskCategories[x[0]]||defaultCategory(x[0])]);
+ const customs=state.customTasks.map((x,i)=>[x.id||"custom"+i,x.name,x.description||"",x.time||"",x.category||"Household"]);
  return [...defaults,...customs].sort(compareTasksByTime);
 }
 function defaultCategory(id){
@@ -542,7 +539,7 @@ function renderToday(){
  const tasks=allTasks().sort(compareTasksByTime), done=tasks.filter(x=>taskDone(x[0])).length, pct=tasks.length?Math.round(done/tasks.length*100):0;
  document.getElementById("progressBar").style.width=pct+"%";
  document.getElementById("progressText").textContent=`${done} of ${tasks.length} completed · ${pct}%`;
- document.getElementById("tasks").innerHTML=tasks.map(x=>`<div class="checkrow ${taskDone(x[0])?"done":""}"><input type="checkbox" ${taskDone(x[0])?"checked":""} onchange="toggleTask('${x[0]}')"><label><b>${escapeHtml(x[1])}</b><span class="meta"> · ${escapeHtml(x[2])}${x[3]?" · "+escapeHtml(x[3]):""}</span></label></div>`).join("");
+ document.getElementById("tasks").innerHTML=tasks.map(x=>`<div class="checkrow ${taskDone(x[0])?"done":""}"><input type="checkbox" ${taskDone(x[0])?"checked":""} onchange="toggleTask('${x[0]}')"><label><b>${escapeHtml(x[1])}</b>${x[2]?`<span class="meta"> · ${escapeHtml(x[2])}</span>`:""}${x[4]?`<span class="task-cat">${escapeHtml(x[4])}</span>`:""}${x[3]?`<span class="task-time">${escapeHtml(x[3])}</span>`:""}</label></div>`).join("");
  const due=dueTasks(tasks);
  if(!due.length){
    document.getElementById("nextBox").innerHTML=`<div class="next-empty"><strong>Nothing due right now</strong><small>New items will appear here when their scheduled time arrives.</small></div>`;
@@ -551,7 +548,7 @@ function renderToday(){
      <div class="next-task-main">
        <div class="eyebrow">${x[3]||"Now"}</div>
        <strong>${escapeHtml(x[1])}</strong>
-       <small>${escapeHtml(x[2])}</small>
+       <small>${x[2]?escapeHtml(x[2]):escapeHtml(x[4]||"")}</small>
      </div>
      <button class="primary next-complete" onclick="toggleTask('${x[0]}')">Complete</button>
    </div>`).join("");
@@ -580,8 +577,8 @@ function renderRule(){
    return `<div class="rule-item">
      <div class="rule-main">
        <div class="rule-name">${escapeHtml(x[1])}</div>
-       <div class="rule-meta">${escapeHtml(x[2])}</div>
-       <select class="rule-category" aria-label="Category" onchange="setTaskCategory('${x[0]}',this.value)">${categoryOptions(x[2])}</select>
+       <div class="rule-meta">${x[2]?escapeHtml(x[2]):"<span class=\"meta\">No description</span>"}</div>
+       <select class="rule-category" aria-label="Category" onchange="setTaskCategory('${x[0]}',this.value)">${categoryOptions(x[4])}</select>
      </div>
      <div class="rule-time"><span class="rule-time-label">Time</span><strong>${x[3]?escapeHtml(x[3]):"—"}</strong></div>
      <div class="item-actions">
@@ -609,36 +606,17 @@ function categoryOptions(selected){
 function populateCategoryControls(){
  const select=document.getElementById("newTaskCategory");
  if(select)select.innerHTML=categoryOptions("Household");
- const list=document.getElementById("categoryList");
- if(list)list.innerHTML=(state.categories||[]).map(c=>`<div class="category-row"><span>${escapeHtml(c)}</span><div><button class="secondary" onclick="renameCategory('${encodeURIComponent(c)}')">Rename</button><button class="secondary danger" onclick="deleteCategory('${encodeURIComponent(c)}')">Delete</button></div></div>`).join("");
+ const html=(state.categories||[]).map(c=>`<div class="category-chip"><span>${escapeHtml(c)}</span><button class="secondary" onclick="renameCategory('${encodeURIComponent(c)}')">Rename</button><button class="secondary danger" onclick="deleteCategory('${encodeURIComponent(c)}')">Delete</button></div>`).join("");
+ const top=document.getElementById("categoryListTop"); if(top)top.innerHTML=html;
+ const list=document.getElementById("categoryList"); if(list)list.innerHTML=html;
 }
-function addCategory(){
- const input=document.getElementById("newCategory"), v=input.value.trim();
+function addCategoryTop(){
+ const input=document.getElementById("newCategoryTop"), v=input.value.trim();
  if(!v)return;
  if(state.categories.includes(v)){alert("That category already exists.");return;}
- state.categories.push(v);input.value="";save();populateCategoryControls();renderRule();
+ state.categories.push(v);input.value="";save();populateCategoryControls();renderRule();renderToday();
 }
-function renameCategory(encoded){
- const old=decodeURIComponent(encoded), next=prompt("Category name",old);
- if(next===null)return;
- const v=next.trim();
- if(!v||v===old)return;
- if(state.categories.includes(v)){alert("That category already exists.");return;}
- state.categories=state.categories.map(c=>c===old?v:c);
- Object.keys(state.taskCategories).forEach(id=>{if(state.taskCategories[id]===old)state.taskCategories[id]=v;});
- state.customTasks.forEach(t=>{if(t.category===old)t.category=v;});
- save();populateCategoryControls();renderRule();renderToday();
-}
-function deleteCategory(encoded){
- const cat=decodeURIComponent(encoded);
- if((state.categories||[]).length<=1){alert("Keep at least one category.");return;}
- const replacement=state.categories.find(c=>c!==cat)||"Other";
- if(!confirm(`Delete “${cat}”? Items using it will move to “${replacement}”.`))return;
- state.categories=state.categories.filter(c=>c!==cat);
- Object.keys(state.taskCategories).forEach(id=>{if(state.taskCategories[id]===cat)state.taskCategories[id]=replacement;});
- state.customTasks.forEach(t=>{if(t.category===cat)t.category=replacement;});
- save();populateCategoryControls();renderRule();renderToday();
-}
+function addCategory(){ addCategoryTop(); }
 function setTaskCategory(id,category){
  const custom=state.customTasks.find(x=>x.id===id);
  if(custom)custom.category=category; else state.taskCategories[id]=category;
@@ -651,7 +629,7 @@ function addTask(){
  const category=document.getElementById("newTaskCategory")?.value||"Household";
  if(!v)return alert("Please enter a task name.");
  if(t===null)return alert("Please enter the time as HH:MM, for example 19:30.");
- state.customTasks.push({id:"custom-"+Date.now(),name:v,time:t,category});
+ state.customTasks.push({id:"custom-"+Date.now(),name:v,description:"",time:t,category});
  document.getElementById("newTask").value="";
  document.getElementById("newTaskTime").value="";
  save();renderRule();renderToday();
@@ -666,18 +644,26 @@ function editRuleTask(id){
  const custom=state.customTasks.find(x=>x.id===id);
  if(custom){
    const name=prompt("Task name",custom.name);if(name===null)return;
+   const description=prompt("Description (optional)",custom.description||"");if(description===null)return;
    const time=prompt("Time (HH:MM), or leave blank",custom.time||"");if(time===null)return;
    const clean=normaliseTime(time);
    if(clean===null){alert("Please use HH:MM, for example 19:30.");return;}
-   custom.name=name.trim()||custom.name;custom.time=clean;
+   const category=prompt("Category",custom.category||"Household");if(category===null)return;
+   const cat=category.trim()||custom.category||"Other";
+   if(!state.categories.includes(cat)) state.categories.push(cat);
+   custom.name=name.trim()||custom.name;custom.description=description.trim();custom.time=clean;custom.category=cat;
    save();renderRule();renderToday();return;
  }
  const base=defaultTasks.find(x=>x[0]===id);if(!base)return;
  const name=prompt("Task name",base[1]);if(name===null)return;
+ const description=prompt("Description (optional)",base[2]||"");if(description===null)return;
  const time=prompt("Time (HH:MM), or leave blank",base[3]||"");if(time===null)return;
  const clean=normaliseTime(time);
  if(clean===null){alert("Please use HH:MM, for example 19:30.");return;}
- state.customTasks.push({id:"custom-"+Date.now(),name:name.trim()||base[1],time:clean,category:state.taskCategories[id]||defaultCategory(id)});
+ const category=prompt("Category",state.taskCategories[id]||defaultCategory(id));if(category===null)return;
+ const cat=category.trim()||defaultCategory(id);
+ if(!state.categories.includes(cat)) state.categories.push(cat);
+ state.customTasks.push({id:"custom-"+Date.now(),name:name.trim()||base[1],description:description.trim(),time:clean,category:cat});
  state.removedTasks[id]=true;save();renderRule();renderToday();
 }
 function saveExamen(){state.examen[todayKey()]=document.getElementById("examen").value;save()}
@@ -768,7 +754,7 @@ renderToday();renderCalendar();renderRule();renderJournal();populateCategoryCont
 </script>
 <script>
 if ("serviceWorker" in navigator) {
-  window.addEventListener("load", () => navigator.serviceWorker.register("./sw.js?v=8").catch(()=>{}));
+  window.addEventListener("load", () => navigator.serviceWorker.register("./sw.js?v=9").catch(()=>{}));
 }
 </script>
 </body>
@@ -816,4 +802,17 @@ if ("serviceWorker" in navigator) {
 .category-add{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:7px;margin-top:10px}
 .category-add input{min-width:0}
 @media(max-width:800px){.rule-category{max-width:100%}.category-row{align-items:flex-start}.category-row>div{flex-wrap:wrap;justify-content:flex-end}}
+</style>
+
+<style>
+/* v9: time input + explicit category management */
+input[type="time"]{color-scheme:dark;background:#11110f!important;color:var(--text)!important;border:1px solid var(--line);border-radius:10px;padding:12px 14px;min-height:48px;width:100%;}
+.category-card{grid-column:1/-1}
+.category-add-top{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:8px;margin-bottom:12px}
+.category-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+.category-chip{display:grid;grid-template-columns:minmax(0,1fr) auto auto;align-items:center;gap:6px;padding:9px 10px;background:#11110f;border:1px solid var(--line);border-radius:10px;color:var(--text)}
+.category-chip button{font-size:11px;padding:6px 8px}
+.task-cat{display:inline-block;margin-left:8px;padding:2px 7px;border:1px solid #53614a;border-radius:999px;color:#a9ba9c;font-size:11px;vertical-align:1px}
+.task-time{float:right;color:var(--gold);font-variant-numeric:tabular-nums}
+@media(max-width:800px){.category-grid{grid-template-columns:1fr}.category-add-top{grid-template-columns:1fr}.category-chip{grid-template-columns:minmax(0,1fr) auto auto}.task-time{float:none;display:inline-block;margin-left:8px}}
 </style>
