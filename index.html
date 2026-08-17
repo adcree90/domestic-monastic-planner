@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#10100f">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-status-bar-style" content="black">
 <meta name="apple-mobile-web-app-title" content="Monastic Planner">
 <link rel="manifest" href="manifest.json">
 <link rel="apple-touch-icon" href="icons/icon-180.png">
@@ -192,6 +192,128 @@ body{padding:0;overflow-x:hidden}
  .item{align-items:flex-start}
 }
 
+
+/* v5 visual consistency and due-task behavior */
+html{background:#10100f}
+body{background:#10100f}
+.ordo-item{
+  display:grid;
+  grid-template-columns:minmax(0,1fr) 132px;
+  gap:16px;
+  align-items:center;
+  padding:16px 18px;
+  border:1px solid var(--line);
+  border-radius:14px;
+  background:#191917;
+}
+.ordo-main{min-width:0}
+.ordo-title{font-size:18px;font-weight:700;line-height:1.28;overflow-wrap:anywhere}
+.ordo-date{font-size:13px;color:var(--muted);line-height:1.35;margin-top:7px}
+.ordo-pill{
+  min-width:132px;
+  min-height:44px;
+  padding:8px 12px;
+  border:1px solid var(--line);
+  border-radius:999px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  text-align:center;
+  line-height:1.2;
+  font-size:12px;
+}
+.ordo-pill.green{border-color:#53614a;color:#a9ba9c}
+.ordo-pill.gold{border-color:#66563a;color:#d7bd86}
+.ordo-pill.red{border-color:#684642;color:#c79891}
+
+.rule-item{
+  grid-template-columns:minmax(0,1fr) 84px 76px;
+  gap:14px;
+  align-items:center;
+  padding:15px 0;
+}
+.rule-name{margin-bottom:7px}
+.rule-meta{margin-top:0}
+.rule-time{
+  min-width:84px;
+  min-height:46px;
+  padding:6px 8px;
+  border-radius:10px;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  justify-content:center;
+  gap:2px;
+}
+.rule-time-label{
+  color:var(--muted);
+  font-size:9px;
+  letter-spacing:.08em;
+  text-transform:uppercase;
+}
+.rule-time strong{font-size:13px;color:var(--gold);font-weight:400}
+.rule-item .item-actions{
+  display:grid;
+  grid-template-rows:auto auto;
+  gap:6px;
+  justify-items:stretch;
+}
+.rule-item .item-actions button{width:76px}
+.form-stack{gap:7px}
+input[type="time"],input[type="text"],textarea,select{
+  -webkit-appearance:none;
+  appearance:none;
+  background:#11110f!important;
+  color:#eee9dc!important;
+}
+input[type="time"]{display:none}
+
+.next{
+  display:grid;
+  gap:9px;
+  padding:13px;
+}
+.next-task{
+  display:grid;
+  grid-template-columns:24px minmax(0,1fr);
+  gap:10px;
+  align-items:center;
+  padding:12px 13px;
+  border:1px solid #4e4638;
+  border-radius:12px;
+  background:#211f1a;
+}
+.next-check{
+  width:20px;height:20px;margin:0;
+  accent-color:var(--gold);
+}
+.next-task-main{min-width:0}
+.next-task-main strong{display:block;font-size:17px;font-weight:400;line-height:1.25;margin-top:3px}
+.next-task-main small{display:block;color:var(--muted);margin-top:3px;line-height:1.35}
+.next-empty{
+  padding:12px 13px;
+  border:1px dashed #4e4638;
+  border-radius:12px;
+  background:#1b1a17;
+}
+.next-empty strong{display:block;font-size:16px;font-weight:400}
+.next-empty small{display:block;color:var(--muted);margin-top:4px;line-height:1.35}
+
+@media(max-width:800px){
+  .ordo-item{grid-template-columns:minmax(0,1fr) 112px;gap:10px;padding:14px}
+  .ordo-pill{min-width:112px;min-height:44px}
+  .ordo-title{font-size:17px}
+  .rule-item{grid-template-columns:minmax(0,1fr) 76px;gap:10px}
+  .rule-time{grid-column:2;grid-row:1}
+  .rule-item .item-actions{
+    grid-column:2;
+    grid-row:2;
+    width:76px;
+  }
+  .rule-item .item-actions button{width:76px}
+  .rule-name{font-size:17px}
+}
+
 </style>
 </head>
 <body>
@@ -262,7 +384,7 @@ body{padding:0;overflow-x:hidden}
     <label class="field-label" for="newTask">Task</label>
     <input id="newTask" type="text" placeholder="e.g. Walk the dog">
     <label class="field-label" for="newTaskTime">Time <span>(optional)</span></label>
-    <input id="newTaskTime" type="time" value="">
+    <input id="newTaskTime" type="text" inputmode="numeric" autocomplete="off" placeholder="HH:MM" maxlength="5" value="">
     <button class="primary" onclick="addTask()">Add task</button>
   </div>
   <div class="meta" style="margin-top:10px">The time will appear on your daily rhythm and can be changed later.</div>
@@ -338,6 +460,25 @@ function allTasks(){
 }
 function taskDone(id){return !!(state.tasks[todayKey()]||{})[id]}
 function toggleTask(id){state.tasks[todayKey()]=state.tasks[todayKey()]||{};state.tasks[todayKey()][id]=!taskDone(id);save();renderToday()}
+function timeToMinutes(t){
+ if(!t)return null;
+ const [h,m]=String(t).split(":").map(Number);
+ return h*60+m;
+}
+function dueTasks(tasks){
+ const now=new Date(), minutes=now.getHours()*60+now.getMinutes();
+ return tasks.filter(x=>{
+   if(taskDone(x[0]))return false;
+   const t=timeToMinutes(x[3]);
+   return t===null || t<=minutes;
+ }).sort((a,b)=>{
+   const ta=timeToMinutes(a[3]),tb=timeToMinutes(b[3]);
+   if(ta===null&&tb===null)return 0;
+   if(ta===null)return -1;
+   if(tb===null)return 1;
+   return ta-tb;
+ });
+}
 function renderToday(){
  const d=new Date(), key=todayKey(), info=getDay(), saint=saintInfo[key];
  document.getElementById("dateLabel").textContent=fmtDate(d);
@@ -346,11 +487,23 @@ function renderToday(){
  document.getElementById("saintCard").innerHTML=saint?`<strong style="font-size:19px;font-weight:400">${saint.name}</strong><p class="meta">${saint.bio}</p><p class="meta"><b>Domestic prompt:</b> ${saint.prompt}</p>`:`<div class="meta">The day's principal celebration is <b>${info.title}</b>. Optional commemorations can be added as the calendar is expanded.</div>`;
  document.getElementById("prayerQuote").innerHTML=`<span>${escapeHtml(saint?saint.prompt:"Lord, teach me to receive this ordinary day as a gift and to return it to you in love.")}</span>`;
  document.getElementById("details").innerHTML=`<span class="badge">Season: Ordinary Time</span><span class="badge">Year: A</span><span class="badge">Local: UK / Ireland</span><p class="meta">This local-first version does not require an internet connection. Liturgical data can be expanded in a later version.</p>`;
- const tasks=allTasks(), done=tasks.filter(x=>taskDone(x[0])).length, pct=Math.round(done/tasks.length*100);
- document.getElementById("progressBar").style.width=pct+"%";document.getElementById("progressText").textContent=`${done} of ${tasks.length} completed · ${pct}%`;
- document.getElementById("tasks").innerHTML=tasks.map(x=>`<div class="checkrow ${taskDone(x[0])?"done":""}"><input type="checkbox" ${taskDone(x[0])?"checked":""} onchange="toggleTask('${x[0]}')"><label><b>${x[1]}</b><span class="meta"> · ${x[2]}${x[3]?" · "+x[3]:""}</span></label></div>`).join("");
- const next=tasks.find(x=>!taskDone(x[0]))||tasks[0];
- document.getElementById("nextBox").innerHTML=`<div><div class="eyebrow">${next[3]||"Next"}</div><strong>${next[1]}</strong><small>${next[2]}</small></div>`;
+ const tasks=allTasks(), done=tasks.filter(x=>taskDone(x[0])).length, pct=tasks.length?Math.round(done/tasks.length*100):0;
+ document.getElementById("progressBar").style.width=pct+"%";
+ document.getElementById("progressText").textContent=`${done} of ${tasks.length} completed · ${pct}%`;
+ document.getElementById("tasks").innerHTML=tasks.map(x=>`<div class="checkrow ${taskDone(x[0])?"done":""}"><input type="checkbox" ${taskDone(x[0])?"checked":""} onchange="toggleTask('${x[0]}')"><label><b>${escapeHtml(x[1])}</b><span class="meta"> · ${escapeHtml(x[2])}${x[3]?" · "+escapeHtml(x[3]):""}</span></label></div>`).join("");
+ const due=dueTasks(tasks);
+ if(!due.length){
+   document.getElementById("nextBox").innerHTML=`<div class="next-empty"><strong>Nothing due right now</strong><small>New items will appear here when their scheduled time arrives.</small></div>`;
+ }else{
+   document.getElementById("nextBox").innerHTML=due.map(x=>`<div class="next-task">
+     <input class="next-check" type="checkbox" onchange="toggleTask('${x[0]}')" aria-label="Mark ${escapeHtml(x[1])} complete">
+     <div class="next-task-main">
+       <div class="eyebrow">${x[3]||"Now"}</div>
+       <strong>${escapeHtml(x[1])}</strong>
+       <small>${escapeHtml(x[2])}</small>
+     </div>
+   </div>`).join("");
+ }
  document.getElementById("examen").value=state.examen[key]||"";
 }
 function renderCalendar(){
@@ -360,7 +513,13 @@ function renderCalendar(){
  for(let n=1;n<=days;n++){let k=`2026-08-${String(n).padStart(2,"0")}`,x=calendarData[k];out+=`<div class="day ${k===todayKey()?"today":""}"><div class="daynum">${n}</div>${x?`<div class="event ${x.type}">${x.title}</div>`:""}</div>`}
  el.innerHTML=out;
  const upcoming=Object.entries(calendarData).filter(([k])=>k>=todayKey()).slice(0,7);
- document.getElementById("upcoming").innerHTML=upcoming.map(([k,x])=>`<div class="item"><div><b>${x.title}</b><small>${fmtDate(new Date(k+"T12:00:00"))}</small></div><span class="badge ${x.type==="solemnity"?"gold":x.type==="feast"?"red":"green"}">${x.note}</span></div>`).join("");
+ document.getElementById("upcoming").innerHTML=upcoming.map(([k,x])=>`<div class="ordo-item">
+   <div class="ordo-main">
+     <div class="ordo-title">${escapeHtml(x.title)}</div>
+     <div class="ordo-date">${fmtDate(new Date(k+"T12:00:00"))}</div>
+   </div>
+   <span class="ordo-pill ${x.type==="solemnity"?"gold":x.type==="feast"?"red":"green"}">${escapeHtml(x.note)}</span>
+ </div>`).join("");
 }
 function renderRule(){
  const tasks=allTasks();
@@ -371,7 +530,7 @@ function renderRule(){
        <div class="rule-name">${escapeHtml(x[1])}</div>
        <div class="rule-meta">${escapeHtml(x[2])}</div>
      </div>
-     <div class="rule-time">${x[3]?escapeHtml(x[3]):"No time"}</div>
+     <div class="rule-time"><span class="rule-time-label">Time</span><strong>${x[3]?escapeHtml(x[3]):"—"}</strong></div>
      <div class="item-actions">
        <button class="secondary" onclick="editRuleTask('${x[0]}')">Edit</button>
        <button class="secondary danger" onclick="deleteRuleTask('${x[0]}',${isCustom})">Delete</button>
@@ -379,13 +538,50 @@ function renderRule(){
    </div>`;
  }).join(""):`<div class="empty">Your daily rule is empty. Add something below.</div>`;
 }
-function escapeHtml(v){return String(v??"").replace(/[&<>'"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','\"':'&quot;'}[c]));}
-function addTask(){let v=document.getElementById("newTask").value.trim();let t=document.getElementById("newTaskTime").value;if(!v)return;state.customTasks.push({id:"custom-"+Date.now(),name:v,time:t});document.getElementById("newTask").value="";document.getElementById("newTaskTime").value="";save();renderRule();renderToday()}
-function deleteRuleTask(id,isCustom){if(!confirm("Remove this item from your daily rule?"))return;if(isCustom){state.customTasks=state.customTasks.filter(x=>x.id!==id)}else{state.removedTasks[id]=true}save();renderRule();renderToday()}
+function escapeHtml(v){return String(v??"").replace(/[&<>'"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c]));}
+function normaliseTime(v){
+ const t=String(v||"").trim();
+ if(!t)return "";
+ const m=t.match(/^(\d{1,2}):(\d{2})$/);
+ if(!m)return null;
+ const h=Number(m[1]),min=Number(m[2]);
+ if(h>23||min>59)return null;
+ return `${String(h).padStart(2,"0")}:${m[2]}`;
+}
+function addTask(){
+ const v=document.getElementById("newTask").value.trim();
+ const raw=document.getElementById("newTaskTime").value;
+ const t=normaliseTime(raw);
+ if(!v)return alert("Please enter a task name.");
+ if(t===null)return alert("Please enter the time as HH:MM, for example 19:30.");
+ state.customTasks.push({id:"custom-"+Date.now(),name:v,time:t});
+ document.getElementById("newTask").value="";
+ document.getElementById("newTaskTime").value="";
+ save();renderRule();renderToday();
+}
+function deleteRuleTask(id,isCustom){
+ if(!confirm("Remove this item from your daily rule?"))return;
+ if(isCustom)state.customTasks=state.customTasks.filter(x=>x.id!==id);
+ else state.removedTasks[id]=true;
+ save();renderRule();renderToday();
+}
 function editRuleTask(id){
  const custom=state.customTasks.find(x=>x.id===id);
- if(custom){const name=prompt("Task name",custom.name);if(name===null)return;const time=prompt("Time (HH:MM), or leave blank",custom.time||"");if(time===null)return;custom.name=name.trim()||custom.name;custom.time=time.trim();save();renderRule();renderToday();return}
- const base=defaultTasks.find(x=>x[0]===id);if(!base)return;const name=prompt("Task name",base[1]);if(name===null)return;const time=prompt("Time (HH:MM), or leave blank",base[3]||"");if(time===null)return;state.customTasks.push({id:"custom-"+Date.now(),name:name.trim()||base[1],time:time.trim()});state.removedTasks[id]=true;save();renderRule();renderToday();
+ if(custom){
+   const name=prompt("Task name",custom.name);if(name===null)return;
+   const time=prompt("Time (HH:MM), or leave blank",custom.time||"");if(time===null)return;
+   const clean=normaliseTime(time);
+   if(clean===null){alert("Please use HH:MM, for example 19:30.");return;}
+   custom.name=name.trim()||custom.name;custom.time=clean;
+   save();renderRule();renderToday();return;
+ }
+ const base=defaultTasks.find(x=>x[0]===id);if(!base)return;
+ const name=prompt("Task name",base[1]);if(name===null)return;
+ const time=prompt("Time (HH:MM), or leave blank",base[3]||"");if(time===null)return;
+ const clean=normaliseTime(time);
+ if(clean===null){alert("Please use HH:MM, for example 19:30.");return;}
+ state.customTasks.push({id:"custom-"+Date.now(),name:name.trim()||base[1],time:clean});
+ state.removedTasks[id]=true;save();renderRule();renderToday();
 }
 function saveExamen(){state.examen[todayKey()]=document.getElementById("examen").value;save()}
 function clearExamen(){document.getElementById("examen").value="";delete state.examen[todayKey()];save()}
@@ -414,7 +610,7 @@ renderToday();renderCalendar();renderRule();renderJournal();
 </script>
 <script>
 if ("serviceWorker" in navigator) {
-  window.addEventListener("load", () => navigator.serviceWorker.register("./sw.js").catch(()=>{}));
+  window.addEventListener("load", () => navigator.serviceWorker.register("./sw.js?v=5").catch(()=>{}));
 }
 </script>
 </body>

@@ -1,4 +1,4 @@
-const CACHE = "dmp-v4";
+const CACHE = "dmp-v5";
 const ASSETS = ["./", "./index.html", "./manifest.json"];
 self.addEventListener("install", event => {
   event.waitUntil(caches.open(CACHE).then(cache => cache.addAll(ASSETS)));
