@@ -58,6 +58,31 @@ footer{text-align:center;color:#625f58;font-size:11px;margin-top:35px;letter-spa
   .event{font-size:10px;overflow-wrap:anywhere}
   .sectionhead{align-items:flex-start;flex-direction:column}
 }
+
+/* v3 mobile and management UI */
+body{padding:0;overflow-x:hidden}
+.app{padding-top:max(22px, calc(18px + env(safe-area-inset-top)));padding-bottom:max(60px, calc(60px + env(safe-area-inset-bottom)))}
+.header-brand{min-width:0}
+.rule-actions{display:flex;gap:6px;align-items:center;flex-wrap:wrap}
+.item-actions{display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end}
+.item-actions button{padding:7px 9px;font-size:12px}
+.danger{border-color:#67443f!important;color:#d19a92!important}
+.form-grid{display:grid;grid-template-columns:1fr 150px;gap:8px}
+.form-grid .wide-input{grid-column:1/-1}
+.filterbar{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px}
+.filterbar select{width:100%;background:#11110f;border:1px solid var(--line);border-radius:10px;color:var(--text);padding:10px;outline:none}
+.journal-entry{align-items:flex-start}
+.journal-entry small{display:block;margin-top:5px;line-height:1.45;max-width:650px}
+.empty{padding:18px;border:1px dashed var(--line);border-radius:10px;color:var(--muted)}
+@media(max-width:800px){
+ .app{padding-top:max(64px, calc(18px + env(safe-area-inset-top)))}
+ h1{font-size:clamp(30px,8.5vw,48px)}
+ .hero{padding-top:8px}
+ .form-grid{grid-template-columns:1fr 125px}
+ .filterbar{grid-template-columns:1fr 1fr}
+ .item{align-items:flex-start}
+}
+
 </style>
 </head>
 <body>
@@ -120,17 +145,21 @@ footer{text-align:center;color:#625f58;font-size:11px;margin-top:35px;letter-spa
 </section>
 
 <section id="rule" class="view">
-  <div class="hero"><div class="eyebrow">My Rule</div><h1>Prayer, work, rest.</h1><p class="lead">Your rule is the backbone. The app turns it into today's gentle sequence instead of a giant overdue task list.</p></div>
+  <div class="hero"><div class="eyebrow">My Rule</div><h1>Prayer, work, rest.</h1><p class="lead">Your rule is the backbone. Edit the rhythm here and today's page follows it automatically.</p></div>
   <div class="grid">
-    <div class="card wide"><h3>Daily rule</h3><div id="ruleList"></div></div>
-    <div class="card"><h3>Add a household task</h3><input id="newTask" type="text" placeholder="e.g. Walk the dog"><div class="actions"><button class="primary" onclick="addTask()">Add</button></div><div class="meta" style="margin-top:10px">Stored only on this device.</div></div>
+    <div class="card wide"><div class="sectionhead" style="margin:0 0 10px"><h2 style="margin:0">Daily rule</h2><div class="meta">Edit or remove anything you no longer want in the rhythm.</div></div><div id="ruleList"></div></div>
+    <div class="card"><h3>Add to your daily rule</h3><div class="form-grid"><input class="wide-input" id="newTask" type="text" placeholder="e.g. Walk the dog"><input id="newTaskTime" type="time" value=""><button class="primary" onclick="addTask()">Add task</button></div><div class="meta" style="margin-top:10px">Time is optional. New tasks are stored only on this device.</div></div>
   </div>
 </section>
 
 <section id="journal" class="view">
-  <div class="hero"><div class="eyebrow">Journal</div><h1>A commonplace book.</h1><p class="lead">Keep a small record of prayer, Scripture, saints, resolutions and the ordinary graces of family life.</p></div>
-  <div class="card full" style="margin-top:18px"><h3 id="journalDate"></h3><textarea id="journalText" placeholder="Write freely…"></textarea><div class="actions"><button class="primary" onclick="saveJournal()">Save today's entry</button></div></div>
-  <div class="card full" style="margin-top:14px"><h3>Saved entries</h3><div id="savedEntries"></div></div>
+  <div class="hero"><div class="eyebrow">Journal</div><h1>A commonplace book.</h1><p class="lead">Keep a record of prayer, Scripture, saints, resolutions and the ordinary graces of family life.</p></div>
+  <div class="card full" style="margin-top:18px"><h3 id="journalDate"></h3><textarea id="journalText" placeholder="Write freely…"></textarea><div class="actions"><button class="primary" onclick="saveJournal()">Save today's entry</button></div><div class="meta" style="margin-top:9px">Saving again on the same day updates that day's entry.</div></div>
+  <div class="card full" style="margin-top:14px">
+    <div class="sectionhead" style="margin:0"><h2 style="margin:0">Saved entries</h2><div class="meta" id="journalCount"></div></div>
+    <div class="filterbar"><select id="journalFilter" onchange="renderJournal()"><option value="all">All entries</option><option value="week">This week</option><option value="month">This month</option><option value="year">This year</option></select><select id="journalSort" onchange="renderJournal()"><option value="newest">Newest first</option><option value="oldest">Oldest first</option></select></div>
+    <div id="savedEntries" style="margin-top:12px"></div>
+  </div>
 </section>
 
 <footer>Built for a domestic rule of life · ✠</footer>
@@ -172,6 +201,7 @@ const saintInfo={
 let state=JSON.parse(localStorage.getItem(KEY)||"{}");
 state.tasks=state.tasks||{};
 state.customTasks=state.customTasks||[];
+state.removedTasks=state.removedTasks||{};
 state.journal=state.journal||{};
 state.examen=state.examen||{};
 
@@ -179,7 +209,12 @@ function todayKey(){return new Date().toISOString().slice(0,10)}
 function fmtDate(d){return new Intl.DateTimeFormat("en-GB",{weekday:"long",day:"numeric",month:"long",year:"numeric"}).format(d)}
 function getDay(){return calendarData[todayKey()]||{title:"Feria",type:"weekday",colour:"Green",note:"Ordinary Time"}}
 function save(){localStorage.setItem(KEY,JSON.stringify(state))}
-function allTasks(){return [...defaultTasks,...state.customTasks.map((x,i)=>[x.id||"custom"+i,x.name,"Household", ""]) ]}
+function allTasks(){
+ const removed=state.removedTasks||{};
+ const defaults=defaultTasks.filter(x=>!removed[x[0]]);
+ const customs=state.customTasks.map((x,i)=>[x.id||"custom"+i,x.name,"Household",x.time||""]);
+ return [...defaults,...customs];
+}
 function taskDone(id){return !!(state.tasks[todayKey()]||{})[id]}
 function toggleTask(id){state.tasks[todayKey()]=state.tasks[todayKey()]||{};state.tasks[todayKey()][id]=!taskDone(id);save();renderToday()}
 function renderToday(){
@@ -207,14 +242,33 @@ function renderCalendar(){
  document.getElementById("upcoming").innerHTML=upcoming.map(([k,x])=>`<div class="item"><div><b>${x.title}</b><small>${fmtDate(new Date(k+"T12:00:00"))}</small></div><span class="badge ${x.type==="solemnity"?"gold":x.type==="feast"?"red":"green"}">${x.note}</span></div>`).join("");
 }
 function renderRule(){
- document.getElementById("ruleList").innerHTML=allTasks().map(x=>`<div class="checkrow"><div style="width:24px;color:var(--gold)">✠</div><label><b>${x[1]}</b><span class="meta"> · ${x[2]}${x[3]?" · "+x[3]:""}</span></label></div>`).join("");
+ const tasks=allTasks();
+ document.getElementById("ruleList").innerHTML=tasks.length?tasks.map(x=>{
+   const isCustom=String(x[0]).startsWith("custom-");
+   return `<div class="item"><div><b>${escapeHtml(x[1])}</b><small>${escapeHtml(x[2])}${x[3]?" · "+escapeHtml(x[3]):""}</small></div><div class="item-actions"><button class="secondary" onclick="editRuleTask('${x[0]}')">Edit</button><button class="secondary danger" onclick="deleteRuleTask('${x[0]}',${isCustom})">Delete</button></div></div>`;
+ }).join(""):`<div class="empty">Your daily rule is empty. Add something below.</div>`;
 }
-function addTask(){let v=document.getElementById("newTask").value.trim();if(!v)return;state.customTasks.push({id:"custom-"+Date.now(),name:v});document.getElementById("newTask").value="";save();renderRule();renderToday()}
+function escapeHtml(v){return String(v??"").replace(/[&<>'"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','\"':'&quot;'}[c]));}
+function addTask(){let v=document.getElementById("newTask").value.trim();let t=document.getElementById("newTaskTime").value;if(!v)return;state.customTasks.push({id:"custom-"+Date.now(),name:v,time:t});document.getElementById("newTask").value="";document.getElementById("newTaskTime").value="";save();renderRule();renderToday()}
+function deleteRuleTask(id,isCustom){if(!confirm("Remove this item from your daily rule?"))return;if(isCustom){state.customTasks=state.customTasks.filter(x=>x.id!==id)}else{state.removedTasks[id]=true}save();renderRule();renderToday()}
+function editRuleTask(id){
+ const custom=state.customTasks.find(x=>x.id===id);
+ if(custom){const name=prompt("Task name",custom.name);if(name===null)return;const time=prompt("Time (HH:MM), or leave blank",custom.time||"");if(time===null)return;custom.name=name.trim()||custom.name;custom.time=time.trim();save();renderRule();renderToday();return}
+ const base=defaultTasks.find(x=>x[0]===id);if(!base)return;const name=prompt("Task name",base[1]);if(name===null)return;const time=prompt("Time (HH:MM), or leave blank",base[3]||"");if(time===null)return;state.customTasks.push({id:"custom-"+Date.now(),name:name.trim()||base[1],time:time.trim()});state.removedTasks[id]=true;save();renderRule();renderToday();
+}
 function saveExamen(){state.examen[todayKey()]=document.getElementById("examen").value;save()}
 function clearExamen(){document.getElementById("examen").value="";delete state.examen[todayKey()];save()}
-function saveJournal(){state.journal[todayKey()]=document.getElementById("journalText").value;save();renderJournal()}
-function renderJournal(){document.getElementById("journalDate").textContent=fmtDate(new Date());document.getElementById("journalText").value=state.journal[todayKey()]||"";const entries=Object.entries(state.journal).sort((a,b)=>b[0].localeCompare(a[0]));document.getElementById("savedEntries").innerHTML=entries.length?entries.map(([k,v])=>`<div class="item"><div><b>${fmtDate(new Date(k+"T12:00:00"))}</b><small>${(v||"").slice(0,110)}${(v||"").length>110?"…":""}</small></div><button class="secondary" onclick="loadEntry('${k}')">Open</button></div>`).join(""):`<div class="meta">No entries yet.</div>`}
-function loadEntry(k){document.getElementById("journalText").value=state.journal[k]||""}
+function saveJournal(){const text=document.getElementById("journalText").value.trim();if(!text){if(state.journal[todayKey()]&&confirm("Delete today's journal entry?")){delete state.journal[todayKey()];save();renderJournal()}return}state.journal[todayKey()]=text;save();renderJournal()}
+function journalInFilter(k,filter){const d=new Date(k+"T12:00:00"),now=new Date();if(filter==="year")return d.getFullYear()===now.getFullYear();if(filter==="month")return d.getFullYear()===now.getFullYear()&&d.getMonth()===now.getMonth();if(filter==="week"){const n=new Date(now);const day=(n.getDay()+6)%7;n.setHours(0,0,0,0);n.setDate(n.getDate()-day);const end=new Date(n);end.setDate(end.getDate()+7);return d>=n&&d<end}return true}
+function renderJournal(){
+ const today=todayKey();document.getElementById("journalDate").textContent=fmtDate(new Date());document.getElementById("journalText").value=state.journal[today]||"";
+ const filter=document.getElementById("journalFilter")?.value||"all",sort=document.getElementById("journalSort")?.value||"newest";
+ let entries=Object.entries(state.journal).filter(([k])=>journalInFilter(k,filter));entries.sort((a,b)=>sort==="oldest"?a[0].localeCompare(b[0]):b[0].localeCompare(a[0]));
+ document.getElementById("journalCount").textContent=`${entries.length} ${entries.length===1?"entry":"entries"}`;
+ document.getElementById("savedEntries").innerHTML=entries.length?entries.map(([k,v])=>`<div class="item journal-entry"><div><b>${fmtDate(new Date(k+"T12:00:00"))}</b><small>${escapeHtml((v||"").slice(0,180))}${(v||"").length>180?"…":""}</small></div><div class="item-actions"><button class="secondary" onclick="loadEntry('${k}')">Edit</button><button class="secondary danger" onclick="deleteJournal('${k}')">Delete</button></div></div>`).join(""):`<div class="empty">No journal entries match this filter.</div>`;
+}
+function loadEntry(k){document.getElementById("journalText").value=state.journal[k]||"";document.getElementById("journalDate").textContent=fmtDate(new Date(k+"T12:00:00"));document.querySelector('[data-view="journal"]').scrollIntoView({behavior:"smooth",block:"start"})}
+function deleteJournal(k){if(!confirm("Delete this journal entry permanently?"))return;delete state.journal[k];save();if(k===todayKey())document.getElementById("journalText").value="";renderJournal()}
 document.querySelectorAll(".nav button").forEach(b=>b.onclick=()=>{document.querySelectorAll(".nav button").forEach(x=>x.classList.remove("active"));b.classList.add("active");document.querySelectorAll(".view").forEach(v=>v.classList.remove("active"));document.getElementById(b.dataset.view).classList.add("active")});
 renderToday();renderCalendar();renderRule();renderJournal();
 </script>
