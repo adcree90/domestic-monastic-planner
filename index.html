@@ -315,6 +315,17 @@ input[type="time"]{display:none}
   .rule-name{font-size:17px}
 }
 
+
+/* v8 category controls */
+.rule-category{margin-top:8px;max-width:220px;width:100%;background:#11110f!important;color:var(--muted)!important;border:1px solid var(--line);border-radius:9px;padding:6px 9px;font-size:12px;min-height:36px}
+.category-manager{margin-top:18px;padding-top:16px;border-top:1px solid var(--line)}
+.category-manager-title{font-size:12px;letter-spacing:.1em;text-transform:uppercase;color:var(--gold);margin-bottom:8px}
+.category-row{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:8px 0;border-bottom:1px solid #2b2b28;color:var(--muted);font-size:13px}
+.category-row>div{display:flex;gap:6px}
+.category-row button{font-size:11px;padding:6px 8px}
+.category-add{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:7px;margin-top:10px}
+.category-add input{min-width:0}
+@media(max-width:800px){.rule-category{max-width:100%}.category-row{align-items:flex-start}.category-row>div{flex-wrap:wrap;justify-content:flex-end}}
 </style>
 </head>
 <body>
@@ -386,9 +397,19 @@ input[type="time"]{display:none}
     <input id="newTask" type="text" placeholder="e.g. Walk the dog">
     <label class="field-label" for="newTaskTime">Time <span>(optional)</span></label>
     <input id="newTaskTime" type="text" inputmode="numeric" autocomplete="off" placeholder="HH:MM" maxlength="5" value="">
+    <label class="field-label" for="newTaskCategory">Category</label>
+    <select id="newTaskCategory"></select>
     <button class="primary" onclick="addTask()">Add task</button>
   </div>
-  <div class="meta" style="margin-top:10px">The time will appear on your daily rhythm and can be changed later.</div>
+  <div class="meta" style="margin-top:10px">Tasks are automatically sorted by time. Categories can be changed at any time.</div>
+  <div class="category-manager">
+    <div class="category-manager-title">Categories</div>
+    <div id="categoryList"></div>
+    <div class="category-add">
+      <input id="newCategory" type="text" placeholder="Add a category">
+      <button class="secondary" onclick="addCategory()">Add</button>
+    </div>
+  </div>
 </div>
   </div>
 </section>
@@ -446,6 +467,8 @@ let state=JSON.parse(localStorage.getItem(KEY)||"{}");
 state.tasks=state.tasks||{};
 state.customTasks=state.customTasks||[];
 state.removedTasks=state.removedTasks||{};
+state.taskCategories=state.taskCategories||{};
+state.categories=state.categories||["Prayer","Scripture","Work","Household","Family","Spiritual reading","Personal","Other"];
 state.journal=state.journal||{};
 Object.keys(state.journal).forEach(k=>{
   if(/^\d{4}-\d{2}-\d{2}$/.test(k)){
@@ -466,29 +489,33 @@ function getDay(){return calendarData[todayKey()]||{title:"Feria",type:"weekday"
 function save(){localStorage.setItem(KEY,JSON.stringify(state))}
 function allTasks(){
  const removed=state.removedTasks||{};
- const defaults=defaultTasks.filter(x=>!removed[x[0]]);
- const customs=state.customTasks.map((x,i)=>[x.id||"custom"+i,x.name,"Household",x.time||""]);
- return [...defaults,...customs].sort((a,b)=>{
-   const ta=timeToMinutes(a[3]), tb=timeToMinutes(b[3]);
-   if(ta===null && tb===null) return String(a[1]).localeCompare(String(b[1]));
-   if(ta===null) return 1;
-   if(tb===null) return -1;
-   return ta-tb;
- });
+ const defaults=defaultTasks.filter(x=>!removed[x[0]]).map(x=>[x[0],x[1],state.taskCategories[x[0]]||defaultCategory(x[0]),x[3]||""]);
+ const customs=state.customTasks.map((x,i)=>[x.id||"custom"+i,x.name,x.category||"Household",x.time||""]);
+ return [...defaults,...customs].sort(compareTasksByTime);
+}
+function defaultCategory(id){
+ const map={lauds:"Prayer",bible:"Scripture",work:"Work",sext:"Prayer",rosary:"Prayer",vespers:"Prayer",reading:"Spiritual reading",compline:"Prayer"};
+ return map[id]||"Other";
 }
 function taskDone(id){return !!(state.tasks[todayKey()]||{})[id]}
 function toggleTask(id){state.tasks[todayKey()]=state.tasks[todayKey()]||{};state.tasks[todayKey()][id]=!taskDone(id);save();renderToday()}
+function timeToMinutes(t){
+ if(t===null||t===undefined)return null;
+ const raw=String(t).trim();
+ if(!raw)return null;
+ const m=raw.match(/^(\d{1,2}):(\d{2})$/);
+ if(!m)return null;
+ const h=Number(m[1]), min=Number(m[2]);
+ if(h>23||min>59)return null;
+ return h*60+min;
+}
 function compareTasksByTime(a,b){
  const ta=timeToMinutes(a[3]), tb=timeToMinutes(b[3]);
- if(ta===null && tb===null) return String(a[1]).localeCompare(String(b[1]));
- if(ta===null) return 1;
- if(tb===null) return -1;
- return ta-tb;
-}
-function timeToMinutes(t){
- if(!t)return null;
- const [h,m]=String(t).split(":").map(Number);
- return h*60+m;
+ if(ta===null && tb===null)return String(a[1]).localeCompare(String(b[1]));
+ if(ta===null)return 1;
+ if(tb===null)return -1;
+ if(ta!==tb)return ta-tb;
+ return String(a[1]).localeCompare(String(b[1]));
 }
 function dueTasks(tasks){
  const now=new Date(), minutes=now.getHours()*60+now.getMinutes();
@@ -554,6 +581,7 @@ function renderRule(){
      <div class="rule-main">
        <div class="rule-name">${escapeHtml(x[1])}</div>
        <div class="rule-meta">${escapeHtml(x[2])}</div>
+       <select class="rule-category" aria-label="Category" onchange="setTaskCategory('${x[0]}',this.value)">${categoryOptions(x[2])}</select>
      </div>
      <div class="rule-time"><span class="rule-time-label">Time</span><strong>${x[3]?escapeHtml(x[3]):"—"}</strong></div>
      <div class="item-actions">
@@ -573,13 +601,57 @@ function normaliseTime(v){
  if(h>23||min>59)return null;
  return `${String(h).padStart(2,"0")}:${m[2]}`;
 }
+function categoryOptions(selected){
+ const cats=[...new Set(state.categories||[])];
+ if(selected && !cats.includes(selected))cats.push(selected);
+ return cats.map(c=>`<option value="${escapeHtml(c)}" ${c===selected?"selected":""}>${escapeHtml(c)}</option>`).join("");
+}
+function populateCategoryControls(){
+ const select=document.getElementById("newTaskCategory");
+ if(select)select.innerHTML=categoryOptions("Household");
+ const list=document.getElementById("categoryList");
+ if(list)list.innerHTML=(state.categories||[]).map(c=>`<div class="category-row"><span>${escapeHtml(c)}</span><div><button class="secondary" onclick="renameCategory('${encodeURIComponent(c)}')">Rename</button><button class="secondary danger" onclick="deleteCategory('${encodeURIComponent(c)}')">Delete</button></div></div>`).join("");
+}
+function addCategory(){
+ const input=document.getElementById("newCategory"), v=input.value.trim();
+ if(!v)return;
+ if(state.categories.includes(v)){alert("That category already exists.");return;}
+ state.categories.push(v);input.value="";save();populateCategoryControls();renderRule();
+}
+function renameCategory(encoded){
+ const old=decodeURIComponent(encoded), next=prompt("Category name",old);
+ if(next===null)return;
+ const v=next.trim();
+ if(!v||v===old)return;
+ if(state.categories.includes(v)){alert("That category already exists.");return;}
+ state.categories=state.categories.map(c=>c===old?v:c);
+ Object.keys(state.taskCategories).forEach(id=>{if(state.taskCategories[id]===old)state.taskCategories[id]=v;});
+ state.customTasks.forEach(t=>{if(t.category===old)t.category=v;});
+ save();populateCategoryControls();renderRule();renderToday();
+}
+function deleteCategory(encoded){
+ const cat=decodeURIComponent(encoded);
+ if((state.categories||[]).length<=1){alert("Keep at least one category.");return;}
+ const replacement=state.categories.find(c=>c!==cat)||"Other";
+ if(!confirm(`Delete “${cat}”? Items using it will move to “${replacement}”.`))return;
+ state.categories=state.categories.filter(c=>c!==cat);
+ Object.keys(state.taskCategories).forEach(id=>{if(state.taskCategories[id]===cat)state.taskCategories[id]=replacement;});
+ state.customTasks.forEach(t=>{if(t.category===cat)t.category=replacement;});
+ save();populateCategoryControls();renderRule();renderToday();
+}
+function setTaskCategory(id,category){
+ const custom=state.customTasks.find(x=>x.id===id);
+ if(custom)custom.category=category; else state.taskCategories[id]=category;
+ save();renderRule();renderToday();
+}
 function addTask(){
  const v=document.getElementById("newTask").value.trim();
  const raw=document.getElementById("newTaskTime").value;
  const t=normaliseTime(raw);
+ const category=document.getElementById("newTaskCategory")?.value||"Household";
  if(!v)return alert("Please enter a task name.");
  if(t===null)return alert("Please enter the time as HH:MM, for example 19:30.");
- state.customTasks.push({id:"custom-"+Date.now(),name:v,time:t});
+ state.customTasks.push({id:"custom-"+Date.now(),name:v,time:t,category});
  document.getElementById("newTask").value="";
  document.getElementById("newTaskTime").value="";
  save();renderRule();renderToday();
@@ -605,7 +677,7 @@ function editRuleTask(id){
  const time=prompt("Time (HH:MM), or leave blank",base[3]||"");if(time===null)return;
  const clean=normaliseTime(time);
  if(clean===null){alert("Please use HH:MM, for example 19:30.");return;}
- state.customTasks.push({id:"custom-"+Date.now(),name:name.trim()||base[1],time:clean});
+ state.customTasks.push({id:"custom-"+Date.now(),name:name.trim()||base[1],time:clean,category:state.taskCategories[id]||defaultCategory(id)});
  state.removedTasks[id]=true;save();renderRule();renderToday();
 }
 function saveExamen(){state.examen[todayKey()]=document.getElementById("examen").value;save()}
@@ -692,11 +764,11 @@ function deleteJournal(encodedKey){
  delete state.journal[k];save();renderJournal();
 }
 document.querySelectorAll(".nav button").forEach(b=>b.onclick=()=>{document.querySelectorAll(".nav button").forEach(x=>x.classList.remove("active"));b.classList.add("active");document.querySelectorAll(".view").forEach(v=>v.classList.remove("active"));document.getElementById(b.dataset.view).classList.add("active")});
-renderToday();renderCalendar();renderRule();renderJournal();
+renderToday();renderCalendar();renderRule();renderJournal();populateCategoryControls();
 </script>
 <script>
 if ("serviceWorker" in navigator) {
-  window.addEventListener("load", () => navigator.serviceWorker.register("./sw.js?v=7").catch(()=>{}));
+  window.addEventListener("load", () => navigator.serviceWorker.register("./sw.js?v=8").catch(()=>{}));
 }
 </script>
 </body>
@@ -733,4 +805,15 @@ if ("serviceWorker" in navigator) {
   .journal-entry{grid-template-columns:1fr}
   .journal-entry .item-actions{justify-content:flex-start}
 }
+
+/* v8 category controls */
+.rule-category{margin-top:8px;max-width:220px;width:100%;background:#11110f!important;color:var(--muted)!important;border:1px solid var(--line);border-radius:9px;padding:6px 9px;font-size:12px;min-height:36px}
+.category-manager{margin-top:18px;padding-top:16px;border-top:1px solid var(--line)}
+.category-manager-title{font-size:12px;letter-spacing:.1em;text-transform:uppercase;color:var(--gold);margin-bottom:8px}
+.category-row{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:8px 0;border-bottom:1px solid #2b2b28;color:var(--muted);font-size:13px}
+.category-row>div{display:flex;gap:6px}
+.category-row button{font-size:11px;padding:6px 8px}
+.category-add{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:7px;margin-top:10px}
+.category-add input{min-width:0}
+@media(max-width:800px){.rule-category{max-width:100%}.category-row{align-items:flex-start}.category-row>div{flex-wrap:wrap;justify-content:flex-end}}
 </style>
