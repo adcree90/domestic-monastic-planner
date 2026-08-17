@@ -478,6 +478,13 @@ function allTasks(){
 }
 function taskDone(id){return !!(state.tasks[todayKey()]||{})[id]}
 function toggleTask(id){state.tasks[todayKey()]=state.tasks[todayKey()]||{};state.tasks[todayKey()][id]=!taskDone(id);save();renderToday()}
+function compareTasksByTime(a,b){
+ const ta=timeToMinutes(a[3]), tb=timeToMinutes(b[3]);
+ if(ta===null && tb===null) return String(a[1]).localeCompare(String(b[1]));
+ if(ta===null) return 1;
+ if(tb===null) return -1;
+ return ta-tb;
+}
 function timeToMinutes(t){
  if(!t)return null;
  const [h,m]=String(t).split(":").map(Number);
@@ -505,7 +512,7 @@ function renderToday(){
  document.getElementById("saintCard").innerHTML=saint?`<strong style="font-size:19px;font-weight:400">${saint.name}</strong><p class="meta">${saint.bio}</p><p class="meta"><b>Domestic prompt:</b> ${saint.prompt}</p>`:`<div class="meta">The day's principal celebration is <b>${info.title}</b>. Optional commemorations can be added as the calendar is expanded.</div>`;
  document.getElementById("prayerQuote").innerHTML=`<span>${escapeHtml(saint?saint.prompt:"Lord, teach me to receive this ordinary day as a gift and to return it to you in love.")}</span>`;
  document.getElementById("details").innerHTML=`<span class="badge">Season: Ordinary Time</span><span class="badge">Year: A</span><span class="badge">Local: UK / Ireland</span><p class="meta">This local-first version does not require an internet connection. Liturgical data can be expanded in a later version.</p>`;
- const tasks=allTasks(), done=tasks.filter(x=>taskDone(x[0])).length, pct=tasks.length?Math.round(done/tasks.length*100):0;
+ const tasks=allTasks().sort(compareTasksByTime), done=tasks.filter(x=>taskDone(x[0])).length, pct=tasks.length?Math.round(done/tasks.length*100):0;
  document.getElementById("progressBar").style.width=pct+"%";
  document.getElementById("progressText").textContent=`${done} of ${tasks.length} completed · ${pct}%`;
  document.getElementById("tasks").innerHTML=tasks.map(x=>`<div class="checkrow ${taskDone(x[0])?"done":""}"><input type="checkbox" ${taskDone(x[0])?"checked":""} onchange="toggleTask('${x[0]}')"><label><b>${escapeHtml(x[1])}</b><span class="meta"> · ${escapeHtml(x[2])}${x[3]?" · "+escapeHtml(x[3]):""}</span></label></div>`).join("");
@@ -540,7 +547,7 @@ function renderCalendar(){
  </div>`).join("");
 }
 function renderRule(){
- const tasks=allTasks();
+ const tasks=allTasks().sort(compareTasksByTime);
  document.getElementById("ruleList").innerHTML=tasks.length?tasks.map(x=>{
    const isCustom=String(x[0]).startsWith("custom-");
    return `<div class="rule-item">
@@ -689,7 +696,7 @@ renderToday();renderCalendar();renderRule();renderJournal();
 </script>
 <script>
 if ("serviceWorker" in navigator) {
-  window.addEventListener("load", () => navigator.serviceWorker.register("./sw.js?v=6").catch(()=>{}));
+  window.addEventListener("load", () => navigator.serviceWorker.register("./sw.js?v=7").catch(()=>{}));
 }
 </script>
 </body>
